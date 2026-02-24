@@ -90,9 +90,12 @@ async def generate_tasks(goal: str) -> str:
         )
         return response.content[0].text
     except anthropic.APIError as e:
-        raise RuntimeError(
-            f"Anthropic API error ({type(e).__name__}): status={e.status_code} "
-            f"message={e.message} | model={MODEL} | sdk={anthropic.__version__}"
+        return (
+            f"**API Error** ({type(e).__name__})\n\n"
+            f"- **Status:** {e.status_code}\n"
+            f"- **Message:** {e.message}\n"
+            f"- **Model:** {MODEL}\n"
+            f"- **SDK Version:** {anthropic.__version__}\n"
         )
 
 
