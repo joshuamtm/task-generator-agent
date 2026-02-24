@@ -1,4 +1,4 @@
-anthropic
+anthropic>=0.45.0
 streamlit
 python-dotenv
 markdown-pdf

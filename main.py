@@ -74,7 +74,7 @@ Key risks or blockers to watch for.
 """
 
 # Model selection — using Sonnet for speed and cost-effectiveness
-MODEL = "claude-sonnet-4-6"
+MODEL = "claude-sonnet-4-5-20241022"
 
 
 async def generate_tasks(goal: str) -> str:
