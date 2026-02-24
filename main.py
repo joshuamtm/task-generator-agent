@@ -73,30 +73,35 @@ Key risks or blockers to watch for.
 - When relevant, suggest free or low-cost tools that could help.
 """
 
-# Model selection — using Sonnet for speed and cost-effectiveness
-MODEL = "claude-sonnet-4-6"
+# Model selection — primary with fallback for capacity issues
+MODEL_PRIMARY = "claude-sonnet-4-6"
+MODEL_FALLBACK = "claude-haiku-4-5-20251001"
 
 
 async def generate_tasks(goal: str) -> str:
     """Send a goal to the Task Generator agent and return the structured plan."""
-    client = anthropic.AsyncAnthropic()  # Reads ANTHROPIC_API_KEY from env
+    client = anthropic.AsyncAnthropic(max_retries=4)
 
-    try:
-        response = await client.messages.create(
-            model=MODEL,
-            max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": goal}],
-        )
-        return response.content[0].text
-    except anthropic.APIError as e:
-        return (
-            f"**API Error** ({type(e).__name__})\n\n"
-            f"- **Status:** {e.status_code}\n"
-            f"- **Message:** {e.message}\n"
-            f"- **Model:** {MODEL}\n"
-            f"- **SDK Version:** {anthropic.__version__}\n"
-        )
+    for model in [MODEL_PRIMARY, MODEL_FALLBACK]:
+        try:
+            response = await client.messages.create(
+                model=model,
+                max_tokens=4096,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": goal}],
+            )
+            return response.content[0].text
+        except anthropic.APIError as e:
+            if e.status_code == 529 and model == MODEL_PRIMARY:
+                continue  # Try fallback model
+            return (
+                f"**API Error** ({type(e).__name__})\n\n"
+                f"- **Status:** {e.status_code}\n"
+                f"- **Message:** {e.message}\n"
+                f"- **Model:** {model}\n"
+                f"- **SDK Version:** {anthropic.__version__}\n"
+            )
+    return "The API is currently overloaded. Please try again in a minute."
 
 
 async def main():
