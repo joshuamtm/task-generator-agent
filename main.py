@@ -81,14 +81,19 @@ async def generate_tasks(goal: str) -> str:
     """Send a goal to the Task Generator agent and return the structured plan."""
     client = anthropic.AsyncAnthropic()  # Reads ANTHROPIC_API_KEY from env
 
-    response = await client.messages.create(
-        model=MODEL,
-        max_tokens=4096,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": goal}],
-    )
-
-    return response.content[0].text
+    try:
+        response = await client.messages.create(
+            model=MODEL,
+            max_tokens=4096,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": goal}],
+        )
+        return response.content[0].text
+    except anthropic.APIError as e:
+        raise RuntimeError(
+            f"Anthropic API error ({type(e).__name__}): status={e.status_code} "
+            f"message={e.message} | model={MODEL} | sdk={anthropic.__version__}"
+        )
 
 
 async def main():
