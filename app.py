@@ -8,6 +8,7 @@ Run: streamlit run app.py
 import streamlit as st
 import asyncio
 from main import generate_tasks
+from pdf_export import generate_pdf
 
 st.set_page_config(
     page_title="MTM Task Generator Agent",
@@ -137,6 +138,14 @@ if run_button and goal.strip():
     st.session_state["last_result"] = result
     st.session_state["last_goal"] = goal.strip()
 
+    pdf_bytes = generate_pdf(result, goal.strip())
+    st.download_button(
+        label="Download as PDF",
+        data=pdf_bytes,
+        file_name="task-plan.pdf",
+        mime="application/pdf",
+    )
+
 elif run_button:
     st.warning("Please enter a goal first.")
 
@@ -144,6 +153,16 @@ if "last_result" in st.session_state and not run_button:
     st.markdown("---")
     st.markdown(f"**Previous goal:** {st.session_state['last_goal']}")
     st.markdown(st.session_state["last_result"])
+
+    pdf_bytes = generate_pdf(
+        st.session_state["last_result"], st.session_state["last_goal"]
+    )
+    st.download_button(
+        label="Download as PDF",
+        data=pdf_bytes,
+        file_name="task-plan.pdf",
+        mime="application/pdf",
+    )
 
 # --- Footer ---
 st.markdown(
