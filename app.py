@@ -6,8 +6,7 @@ Run: streamlit run app.py
 """
 
 import streamlit as st
-import asyncio
-from main import generate_tasks
+from main import stream_tasks
 from pdf_export import generate_pdf
 
 st.set_page_config(
@@ -129,11 +128,8 @@ with col1:
     run_button = st.button("Generate Plan", type="primary")
 
 if run_button and goal.strip():
-    with st.spinner("Breaking down your goal into actionable tasks..."):
-        result = asyncio.run(generate_tasks(goal.strip()))
-
     st.markdown("---")
-    st.markdown(result)
+    result = st.write_stream(stream_tasks(goal.strip()))
 
     st.session_state["last_result"] = result
     st.session_state["last_goal"] = goal.strip()

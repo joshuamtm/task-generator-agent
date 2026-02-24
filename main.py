@@ -73,14 +73,45 @@ Key risks or blockers to watch for.
 - When relevant, suggest free or low-cost tools that could help.
 """
 
-# Model selection — primary with fallback for capacity issues
-MODEL_PRIMARY = "claude-sonnet-4-6"
-MODEL_FALLBACK = "claude-haiku-4-5-20251001"
+# Model selection — Haiku 4.5 for fast, reliable structured output.
+# Sonnet 4.6 as fallback for complex goals if needed.
+MODEL_PRIMARY = "claude-haiku-4-5-20251001"
+MODEL_FALLBACK = "claude-sonnet-4-6"
+
+
+def stream_tasks(goal: str):
+    """Stream task generation as a generator of text chunks (for Streamlit)."""
+    client = anthropic.Anthropic(max_retries=3)
+
+    for model in [MODEL_PRIMARY, MODEL_FALLBACK]:
+        try:
+            with client.messages.stream(
+                model=model,
+                max_tokens=4096,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": goal}],
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text
+            return  # Success — exit after streaming completes
+        except anthropic.APIError as e:
+            if e.status_code == 529 and model == MODEL_PRIMARY:
+                continue  # Try fallback model
+            yield (
+                f"\n\n**API Error** ({type(e).__name__})\n\n"
+                f"- **Status:** {e.status_code}\n"
+                f"- **Message:** {e.message}\n"
+                f"- **Model:** {model}\n"
+                f"- **SDK Version:** {anthropic.__version__}\n"
+            )
+            return
+
+    yield "The API is currently overloaded. Please try again in a minute."
 
 
 async def generate_tasks(goal: str) -> str:
-    """Send a goal to the Task Generator agent and return the structured plan."""
-    client = anthropic.AsyncAnthropic(max_retries=4)
+    """Non-streaming version for CLI use."""
+    client = anthropic.AsyncAnthropic(max_retries=3)
 
     for model in [MODEL_PRIMARY, MODEL_FALLBACK]:
         try:
@@ -93,7 +124,7 @@ async def generate_tasks(goal: str) -> str:
             return response.content[0].text
         except anthropic.APIError as e:
             if e.status_code == 529 and model == MODEL_PRIMARY:
-                continue  # Try fallback model
+                continue
             return (
                 f"**API Error** ({type(e).__name__})\n\n"
                 f"- **Status:** {e.status_code}\n"
